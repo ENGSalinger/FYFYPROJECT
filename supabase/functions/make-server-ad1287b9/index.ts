@@ -20,19 +20,8 @@ function getAdminClient() {
   return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
 }
 
-// ── Bootstrap: create tables if they don't exist ────────────────────────────
-app.get("/make-server-ad1287b9/health", async (c) => {
-  const supabase = getAdminClient();
-  await supabase.rpc("exec_sql", { sql: SCHEMA_SQL }).catch(() => null);
-  return c.json({ status: "ok" });
-});
-
-app.post("/make-server-ad1287b9/setup", async (c) => {
-  const supabase = getAdminClient();
-  // Create drivers table
-  await supabase.from("drivers").select("id").limit(1).catch(() => null);
-  return c.json({ ok: true });
-});
+// ── Health check ──────────────────────────────────────────────────────────
+app.get("/make-server-ad1287b9/health", (c) => c.json({ status: "ok" }));
 
 // ── AUTH: Sign Up ────────────────────────────────────────────────────────────
 app.post("/make-server-ad1287b9/signup", async (c) => {
@@ -255,37 +244,5 @@ async function hashPassword(password: string, salt: string): Promise<string> {
   const hash = await crypto.subtle.digest("SHA-256", data);
   return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join("");
 }
-
-const SCHEMA_SQL = `
-CREATE TABLE IF NOT EXISTS drivers (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  age INTEGER NOT NULL,
-  city TEXT NOT NULL,
-  vehicle_id TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL,
-  password_salt TEXT NOT NULL,
-  registered_at TIMESTAMPTZ DEFAULT now(),
-  last_login TIMESTAMPTZ
-);
-
-CREATE TABLE IF NOT EXISTS battery_readings (
-  id BIGSERIAL PRIMARY KEY,
-  vehicle_id TEXT NOT NULL,
-  recorded_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  month_year TEXT NOT NULL,
-  pack_voltage REAL, current_amps REAL, is_charging BOOLEAN,
-  pack_soc REAL, pack_soh REAL,
-  temperature_c REAL, solar_radiation_wm2 REAL,
-  latitude REAL, longitude REAL, speed_kmh REAL,
-  cell1_voltage REAL, cell2_voltage REAL, cell3_voltage REAL, cell4_voltage REAL,
-  cell1_soc REAL, cell2_soc REAL, cell3_soc REAL, cell4_soc REAL,
-  cell1_soh REAL, cell2_soh REAL, cell3_soh REAL, cell4_soh REAL
-);
-
-CREATE INDEX IF NOT EXISTS idx_readings_vehicle ON battery_readings(vehicle_id);
-CREATE INDEX IF NOT EXISTS idx_readings_month ON battery_readings(vehicle_id, month_year);
-CREATE INDEX IF NOT EXISTS idx_readings_time ON battery_readings(recorded_at DESC);
-`;
 
 Deno.serve(app.fetch);

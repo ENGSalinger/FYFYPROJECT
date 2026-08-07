@@ -53,8 +53,8 @@ const char* WIFI_SSID     = "YOUR_WIFI_SSID";          // Your WiFi network name
 const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";       // Your WiFi password
 
 // Supabase edge function URL — your project
-const char* SERVER_URL = "https://atffjlrwxgoblnaxftlm.supabase.co/functions/v1/make-server-ad1287b9/ingest";
-const char* SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF0ZmZqbHJ3eGdvYmxuYXhmdGxtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMTY5NjYsImV4cCI6MjEwMTY5Mjk2Nn0.kr9KB5p7ZQK-3EiSKOd8Ii-3MBnLaB9hm4JpzhWUOE8";
+const char* SERVER_URL = "https://vgrlfxebrauckbtupwlv.supabase.co/functions/v1/make-server-ad1287b9/ingest";
+const char* SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZncmxmeGVicmF1Y2tidHVwd2x2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMjI1NzMsImV4cCI6MjEwMTY5ODU3M30.tFyCGrXqVTjYjX7HtfF6o8xXJnOFQyX1PAcaeRgY-Sk";
 const char* ESP32_API_KEY = "TUKBMS-ESP32-2024";       // Must match server
 
 // Your vehicle ID (registered in the web app)

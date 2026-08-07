@@ -97,13 +97,14 @@ Before flashing the firmware, create the vehicle's account through the dashboard
 
 ## 5. Confirm your Supabase credentials
 
-This project already ships wired to a live Supabase project — `utils/supabase/info.tsx` contains the `projectId` and public anon key, and `ESP32_TUKBMS/ESP32_TUKBMS.ino` already points `SERVER_URL` and `SUPABASE_ANON_KEY` at that same project. **You normally don't need to change these.**
+This project ships wired to a live Supabase project (ref `vgrlfxebrauckbtupwlv`) — `utils/supabase/info.tsx` contains the `projectId` and public anon key, and `ESP32_TUKBMS/ESP32_TUKBMS.ino` already points `SERVER_URL` and `SUPABASE_ANON_KEY` at that same project. **You normally don't need to change these.**
 
 Only change them if you fork this project onto your **own** Supabase project:
-1. Go to [supabase.com/dashboard](https://supabase.com/dashboard) → your project → **Settings → API**.
-2. Copy the **Project URL** (`https://<ref>.supabase.co`) and **anon public key**.
+1. Go to [supabase.com/dashboard](https://supabase.com/dashboard) → your project → **Settings → API Keys**.
+2. Copy the **Project URL** (`https://<ref>.supabase.co`) and the key labeled **`anon`** (role `anon`) — never the `service_role` key, which must stay server-side only.
 3. Update `utils/supabase/info.tsx` (frontend) and `SERVER_URL` / `SUPABASE_ANON_KEY` in the `.ino` file (firmware) to match.
-4. Deploy the edge function in `supabase/functions/server/index.tsx` to that project (`supabase functions deploy make-server-ad1287b9`).
+4. Create the `drivers` and `battery_readings` tables by pasting the SQL from step 3 below into the dashboard's **SQL Editor** and running it.
+5. Deploy the edge function: `supabase functions deploy make-server-ad1287b9 --project-ref <your-ref> --use-api` (the function source lives in `supabase/functions/make-server-ad1287b9/`; the `--use-api` flag bundles without Docker).
 
 ---
 
