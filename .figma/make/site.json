@@ -1,0 +1,10 @@
+{
+  "description": "Monitor and manage battery performance for e-tuktuks with real-time data on voltage, charge, health, and location, enhancing operational efficiency.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
