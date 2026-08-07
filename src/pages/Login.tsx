@@ -1,14 +1,18 @@
 import { useState, type FormEvent } from 'react'
 import { logIn } from '../lib/api'
+import { ThemeToggle } from '../components/Widgets'
+import type { Theme } from '../hooks/useTheme'
 
 interface Props {
   onLogin: (driver: { name: string; vehicleId: string; city: string; age: number }) => void
   onSignUp: () => void
+  theme: Theme
+  onToggleTheme: () => void
 }
 
 type ErrorType = 'not_found' | 'wrong_password' | 'network' | null
 
-export default function Login({ onLogin, onSignUp }: Props) {
+export default function Login({ onLogin, onSignUp, theme, onToggleTheme }: Props) {
   const [vehicleId, setVehicleId] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -56,7 +60,7 @@ export default function Login({ onLogin, onSignUp }: Props) {
 
   return (
     <div style={{
-      minHeight: '100vh', background: '#05080D',
+      minHeight: '100vh', background: 'var(--bg)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: '24px', position: 'relative', overflow: 'hidden',
     }}>
@@ -64,7 +68,11 @@ export default function Login({ onLogin, onSignUp }: Props) {
       <div style={{ position: 'absolute', top: '20%', left: '15%', width: '320px', height: '320px', background: 'radial-gradient(circle, rgba(0,230,118,0.06) 0%, transparent 70%)', pointerEvents: 'none' }} />
       <div style={{ position: 'absolute', bottom: '20%', right: '15%', width: '280px', height: '280px', background: 'radial-gradient(circle, rgba(0,184,217,0.06) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
-      <div className="oled-card animate-slide-up" style={{ width: '100%', maxWidth: '420px', padding: '40px 36px', position: 'relative' }}>
+      <div style={{ position: 'absolute', top: '16px', right: '16px', zIndex: 1 }}>
+        <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+      </div>
+
+      <div className="oled-card animate-slide-up auth-card" style={{ width: '100%', maxWidth: '420px', position: 'relative' }}>
         <div className="scan-overlay" />
 
         {/* Logo */}
@@ -73,7 +81,7 @@ export default function Login({ onLogin, onSignUp }: Props) {
             <BatteryLogo />
           </div>
           <div className="font-display shimmer-text" style={{ fontSize: '22px', fontWeight: '800', letterSpacing: '0.1em' }}>TUKBMS</div>
-          <div style={{ color: '#5A7A94', fontSize: '11px', letterSpacing: '0.25em', marginTop: '4px', fontFamily: 'Exo 2' }}>BATTERY MANAGEMENT SYSTEM</div>
+          <div style={{ color: 'var(--text-secondary)', fontSize: '11px', letterSpacing: '0.25em', marginTop: '4px', fontFamily: 'Exo 2' }}>BATTERY MANAGEMENT SYSTEM</div>
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -146,8 +154,8 @@ export default function Login({ onLogin, onSignUp }: Props) {
           </button>
         </form>
 
-        <div style={{ marginTop: '28px', textAlign: 'center', borderTop: '1px solid #1A2E42', paddingTop: '24px' }}>
-          <span style={{ color: '#5A7A94', fontSize: '13px' }}>New driver? </span>
+        <div style={{ marginTop: '28px', textAlign: 'center', borderTop: '1px solid var(--border)', paddingTop: '24px' }}>
+          <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>New driver? </span>
           <button onClick={onSignUp} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#00B8D9', fontSize: '13px', fontWeight: '600', fontFamily: 'Exo 2', letterSpacing: '0.05em' }}>
             Create Account
           </button>
@@ -171,7 +179,7 @@ export default function Login({ onLogin, onSignUp }: Props) {
         ))}
       </div>
 
-      <div style={{ position: 'absolute', bottom: '16px', color: '#2A4464', fontSize: '10px', fontFamily: 'JetBrains Mono', letterSpacing: '0.1em' }}>
+      <div style={{ position: 'absolute', bottom: '16px', color: 'var(--text-faint)', fontSize: '10px', fontFamily: 'JetBrains Mono', letterSpacing: '0.1em', textAlign: 'center', left: '50%', transform: 'translateX(-50%)', padding: '0 16px' }}>
         TUKBMS v2.4.1 · ESP32 · 4S PACK · Supabase
       </div>
     </div>
@@ -179,14 +187,14 @@ export default function Login({ onLogin, onSignUp }: Props) {
 }
 
 const labelStyle: React.CSSProperties = {
-  display: 'block', color: '#5A7A94', fontSize: '11px',
+  display: 'block', color: 'var(--text-secondary)', fontSize: '11px',
   fontFamily: 'Exo 2', fontWeight: '600', letterSpacing: '0.15em', marginBottom: '8px',
 }
 
 function BatteryLogo() {
   return (
     <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
-      <circle cx="32" cy="32" r="30" stroke="#1A2E42" strokeWidth="1.5" />
+      <circle cx="32" cy="32" r="30" stroke="var(--border)" strokeWidth="1.5" />
       <circle cx="32" cy="32" r="30" stroke="#00E676" strokeWidth="1.5" strokeDasharray="8 4" opacity="0.4" />
       <rect x="14" y="22" width="32" height="20" rx="3" stroke="#00E676" strokeWidth="1.8" fill="rgba(0,230,118,0.05)" />
       <rect x="46" y="27" width="5" height="10" rx="1.5" fill="#00E676" opacity="0.7" />
@@ -198,7 +206,7 @@ function BatteryLogo() {
 
 function VehicleIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A4464" strokeWidth="1.5"
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-faint)" strokeWidth="1.5"
       style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
       <path d="M5 17H3a2 2 0 01-2-2V9a2 2 0 012-2h14l4 4v4a2 2 0 01-2 2h-2" />
       <circle cx="7" cy="17" r="2" /><circle cx="17" cy="17" r="2" />
@@ -208,7 +216,7 @@ function VehicleIcon() {
 
 function LockIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2A4464" strokeWidth="1.5"
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-faint)" strokeWidth="1.5"
       style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
       <rect x="3" y="11" width="18" height="11" rx="2" />
       <path d="M7 11V7a5 5 0 0110 0v4" />

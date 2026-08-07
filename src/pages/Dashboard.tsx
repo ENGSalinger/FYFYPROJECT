@@ -1,16 +1,28 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useBatteryData } from '../hooks/useBatteryData'
+import { useMediaQuery } from '../hooks/useMediaQuery'
+import type { Theme } from '../hooks/useTheme'
 import {
   SOCGauge, CellVoltageBar, CellSOCBar, CurrentWidget,
   TemperatureWidget, SolarWidget, PackVoltageWidget, PackSOHWidget,
-  LocationWidget, TimeSeriesChart,
+  LocationWidget, TimeSeriesChart, ThemeToggle,
 } from '../components/Widgets'
 import { getLatestReading, getHistory, downloadCSV, type BatteryReading, type HistoryReading } from '../lib/api'
 
 interface Props {
   user: { name: string; vehicleId: string; city: string; age?: number }
   onLogout: () => void
+  theme: Theme
+  onToggleTheme: () => void
 }
+
+type Section = 'overview' | 'cells' | 'trip'
+
+const SECTIONS: { id: Section; label: string }[] = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'cells', label: 'Cells & Health' },
+  { id: 'trip', label: 'Trip & History' },
+]
 
 function buildBatteryDataFromReading(reading: BatteryReading, simData: ReturnType<typeof useBatteryData>) {
   // Merge live ESP32 data with simulated fallback
@@ -52,7 +64,7 @@ function buildHistoryFromDB(dbHistory: HistoryReading[], simHistory: ReturnType<
   }))
 }
 
-export default function Dashboard({ user, onLogout }: Props) {
+export default function Dashboard({ user, onLogout, theme, onToggleTheme }: Props) {
   const simData = useBatteryData()
   const [liveReading, setLiveReading] = useState<BatteryReading | null>(null)
   const [dbHistory, setDbHistory] = useState<HistoryReading[]>([])
@@ -65,6 +77,13 @@ export default function Dashboard({ user, onLogout }: Props) {
   const [exportLoading, setExportLoading] = useState(false)
   const [exportError, setExportError] = useState('')
   const [time, setTime] = useState(new Date())
+
+  const isMobile = useMediaQuery('(max-width: 900px)')
+  const [activeSection, setActiveSection] = useState<Section>('overview')
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const showSection = (s: Section) => !isMobile || activeSection === s
+
+  useEffect(() => { if (!isMobile) setDrawerOpen(false) }, [isMobile])
 
   // Fetch live data from Supabase (ESP32 data)
   const fetchLive = useCallback(async () => {
@@ -118,10 +137,14 @@ export default function Dashboard({ user, onLogout }: Props) {
   })
 
   return (
-    <div style={{ minHeight: '100vh', background: '#05080D', color: '#E8F4FD', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text-primary)', display: 'flex', flexDirection: 'column' }}>
 
       {/* Header */}
-      <header style={{ borderBottom: '1px solid #1A2E42', padding: '0 20px', height: '56px', display: 'flex', alignItems: 'center', gap: '14px', position: 'sticky', top: 0, zIndex: 50, background: 'rgba(5,8,13,0.95)', backdropFilter: 'blur(8px)' }}>
+      <header className="dashboard-header" style={{ borderBottom: '1px solid var(--border)', height: '56px', display: 'flex', alignItems: 'center', gap: '12px', position: 'sticky', top: 0, zIndex: 50, background: 'var(--overlay-header)', backdropFilter: 'blur(8px)' }}>
+        <button className="hamburger-btn" onClick={() => setDrawerOpen(true)} aria-label="Open menu">
+          <span /><span /><span />
+        </button>
+
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
           <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
@@ -132,228 +155,311 @@ export default function Dashboard({ user, onLogout }: Props) {
           <span className="font-display shimmer-text" style={{ fontSize: '16px', fontWeight: '800', letterSpacing: '0.12em' }}>TUKBMS</span>
         </div>
 
-        {/* Vehicle ID */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 10px', background: '#0B1117', border: '1px solid #1A2E42', borderRadius: '6px' }}>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#5A7A94" strokeWidth="1.5">
-            <path d="M5 17H3a2 2 0 01-2-2V9a2 2 0 012-2h14l4 4v4a2 2 0 01-2 2h-2" /><circle cx="7" cy="17" r="2" /><circle cx="17" cy="17" r="2" />
-          </svg>
-          <span className="font-mono" style={{ fontSize: '12px', color: '#00B8D9', letterSpacing: '0.08em' }}>{user.vehicleId}</span>
-        </div>
+        {/* Section nav (desktop only) */}
+        <nav className="desktop-only" style={{ gap: '6px', marginLeft: '4px' }}>
+          {SECTIONS.map(s => (
+            <button key={s.id} onClick={() => setActiveSection(s.id)}
+              style={{ padding: '6px 12px', borderRadius: '6px', border: `1px solid ${activeSection === s.id ? '#00B8D9' : 'var(--border)'}`, background: activeSection === s.id ? 'rgba(0,184,217,0.08)' : 'transparent', color: activeSection === s.id ? '#00B8D9' : 'var(--text-secondary)', fontSize: '11px', fontFamily: 'Exo 2', fontWeight: '600', letterSpacing: '0.05em', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              {s.label}
+            </button>
+          ))}
+        </nav>
 
-        {/* Driver */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#5A7A94', fontSize: '12px' }}>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" />
-          </svg>
-          <span style={{ color: '#E8F4FD' }}>{user.name}</span>
-          <span style={{ color: '#2A4464' }}>·</span>
-          <span>{user.city}</span>
-        </div>
-
-        <div style={{ flex: 1 }} />
-
-        {/* ESP32 connection */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '3px 8px', background: '#0B1117', border: `1px solid ${esp32Connected ? 'rgba(0,230,118,0.3)' : '#1A2E42'}`, borderRadius: '6px' }}>
-          <div className={esp32Connected ? 'animate-blink' : ''} style={{ width: '6px', height: '6px', borderRadius: '50%', background: esp32Connected ? '#00E676' : '#3A5A74' }} />
-          <span style={{ color: esp32Connected ? '#00E676' : '#5A7A94', fontSize: '10px', fontFamily: 'Exo 2', fontWeight: '600', letterSpacing: '0.1em' }}>
-            {esp32Connected ? 'ESP32 LIVE' : 'DEMO MODE'}
-          </span>
-        </div>
-
-        {/* Alert */}
-        {alertLevel !== 'normal' && (
-          <div style={{ padding: '3px 10px', borderRadius: '6px', background: alertLevel === 'critical' ? 'rgba(255,61,0,0.1)' : 'rgba(255,179,0,0.1)', border: `1px solid ${alertLevel === 'critical' ? '#FF3D00' : '#FFB300'}`, color: alertLevel === 'critical' ? '#FF3D00' : '#FFB300', fontSize: '10px', fontFamily: 'Exo 2', fontWeight: '700', letterSpacing: '0.12em', display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <span className="animate-blink" style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: 'currentColor' }} />
-            {data.packSOC < 20 ? 'LOW BATTERY' : 'HIGH TEMP'}
+        {/* Secondary header items (desktop only — moved into drawer on mobile) */}
+        <div className="desktop-only" style={{ alignItems: 'center', gap: '14px', flex: 1, minWidth: 0, overflow: 'hidden' }}>
+          {/* Vehicle ID */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '6px', flexShrink: 0 }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="1.5">
+              <path d="M5 17H3a2 2 0 01-2-2V9a2 2 0 012-2h14l4 4v4a2 2 0 01-2 2h-2" /><circle cx="7" cy="17" r="2" /><circle cx="17" cy="17" r="2" />
+            </svg>
+            <span className="font-mono" style={{ fontSize: '12px', color: '#00B8D9', letterSpacing: '0.08em' }}>{user.vehicleId}</span>
           </div>
-        )}
 
-        {/* Export CSV button */}
-        <button onClick={() => setShowExport(true)} style={{ background: 'none', border: '1px solid #1A2E42', borderRadius: '6px', padding: '5px 10px', cursor: 'pointer', color: '#5A7A94', fontSize: '11px', fontFamily: 'Exo 2', letterSpacing: '0.08em', display: 'flex', alignItems: 'center', gap: '5px', transition: 'all 0.2s' }}>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
-          </svg>
-          CSV
-        </button>
+          {/* Driver */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)', fontSize: '12px', flexShrink: 0 }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" />
+            </svg>
+            <span style={{ color: 'var(--text-primary)' }}>{user.name}</span>
+            <span style={{ color: 'var(--text-faint)' }}>·</span>
+            <span>{user.city}</span>
+          </div>
 
-        {/* Clock */}
-        <div className="font-mono" style={{ fontSize: '12px', color: '#5A7A94', letterSpacing: '0.05em' }}>
+          <div style={{ flex: 1 }} />
+
+          {/* ESP32 connection */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '3px 8px', background: 'var(--bg-elevated)', border: `1px solid ${esp32Connected ? 'rgba(0,230,118,0.3)' : 'var(--border)'}`, borderRadius: '6px', flexShrink: 0 }}>
+            <div className={esp32Connected ? 'animate-blink' : ''} style={{ width: '6px', height: '6px', borderRadius: '50%', background: esp32Connected ? '#00E676' : 'var(--text-faint)' }} />
+            <span style={{ color: esp32Connected ? '#00E676' : 'var(--text-secondary)', fontSize: '10px', fontFamily: 'Exo 2', fontWeight: '600', letterSpacing: '0.1em' }}>
+              {esp32Connected ? 'ESP32 LIVE' : 'DEMO MODE'}
+            </span>
+          </div>
+
+          {/* Alert */}
+          {alertLevel !== 'normal' && (
+            <div style={{ padding: '3px 10px', borderRadius: '6px', background: alertLevel === 'critical' ? 'rgba(255,61,0,0.1)' : 'rgba(255,179,0,0.1)', border: `1px solid ${alertLevel === 'critical' ? '#FF3D00' : '#FFB300'}`, color: alertLevel === 'critical' ? '#FF3D00' : '#FFB300', fontSize: '10px', fontFamily: 'Exo 2', fontWeight: '700', letterSpacing: '0.12em', display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
+              <span className="animate-blink" style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: 'currentColor' }} />
+              {data.packSOC < 20 ? 'LOW BATTERY' : 'HIGH TEMP'}
+            </div>
+          )}
+
+          {/* Export CSV button */}
+          <button onClick={() => setShowExport(true)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '6px', padding: '5px 10px', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '11px', fontFamily: 'Exo 2', letterSpacing: '0.08em', display: 'flex', alignItems: 'center', gap: '5px', transition: 'all 0.2s', flexShrink: 0 }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            CSV
+          </button>
+
+          {/* Logout */}
+          <button onClick={onLogout} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '6px', padding: '5px 10px', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '11px', fontFamily: 'Exo 2', letterSpacing: '0.08em', display: 'flex', alignItems: 'center', gap: '5px', transition: 'all 0.2s', flexShrink: 0 }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            LOGOUT
+          </button>
+        </div>
+
+        <div className="mobile-only" style={{ flex: 1 }} />
+
+        {/* Clock — always visible */}
+        <div className="font-mono" style={{ fontSize: '12px', color: 'var(--text-secondary)', letterSpacing: '0.05em', flexShrink: 0 }}>
           {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
         </div>
 
-        {/* Logout */}
-        <button onClick={onLogout} style={{ background: 'none', border: '1px solid #1A2E42', borderRadius: '6px', padding: '5px 10px', cursor: 'pointer', color: '#5A7A94', fontSize: '11px', fontFamily: 'Exo 2', letterSpacing: '0.08em', display: 'flex', alignItems: 'center', gap: '5px', transition: 'all 0.2s' }}>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
-          </svg>
-          LOGOUT
-        </button>
+        <ThemeToggle theme={theme} onToggle={onToggleTheme} />
       </header>
 
+      {/* Mobile drawer */}
+      {drawerOpen && (
+        <div className="nav-drawer-overlay" onClick={() => setDrawerOpen(false)}>
+          <div className="nav-drawer" onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+              <span className="font-display shimmer-text" style={{ fontSize: '15px', fontWeight: '800', letterSpacing: '0.1em' }}>TUKBMS</span>
+              <button onClick={() => setDrawerOpen(false)} aria-label="Close menu" style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '22px', cursor: 'pointer', lineHeight: 1 }}>×</button>
+            </div>
+
+            <div style={{ padding: '10px 12px', background: 'var(--surface-inset)', border: '1px solid var(--border)', borderRadius: '8px', marginBottom: '10px' }}>
+              <div className="font-mono" style={{ fontSize: '13px', color: '#00B8D9', letterSpacing: '0.05em' }}>{user.vehicleId}</div>
+              <div style={{ fontSize: '12px', color: 'var(--text-primary)', marginTop: '4px' }}>{user.name}</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{user.city}</div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 10px', background: 'var(--surface-inset)', border: `1px solid ${esp32Connected ? 'rgba(0,230,118,0.3)' : 'var(--border)'}`, borderRadius: '6px', marginBottom: '8px' }}>
+              <div className={esp32Connected ? 'animate-blink' : ''} style={{ width: '6px', height: '6px', borderRadius: '50%', background: esp32Connected ? '#00E676' : 'var(--text-faint)' }} />
+              <span style={{ color: esp32Connected ? '#00E676' : 'var(--text-secondary)', fontSize: '10px', fontFamily: 'Exo 2', fontWeight: '600', letterSpacing: '0.1em' }}>
+                {esp32Connected ? 'ESP32 LIVE' : 'DEMO MODE'}
+              </span>
+            </div>
+
+            {alertLevel !== 'normal' && (
+              <div style={{ padding: '6px 10px', borderRadius: '6px', background: alertLevel === 'critical' ? 'rgba(255,61,0,0.1)' : 'rgba(255,179,0,0.1)', border: `1px solid ${alertLevel === 'critical' ? '#FF3D00' : '#FFB300'}`, color: alertLevel === 'critical' ? '#FF3D00' : '#FFB300', fontSize: '10px', fontFamily: 'Exo 2', fontWeight: '700', letterSpacing: '0.1em', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <span className="animate-blink" style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: 'currentColor' }} />
+                {data.packSOC < 20 ? 'LOW BATTERY' : 'HIGH TEMP'}
+              </div>
+            )}
+
+            <div style={{ height: '1px', background: 'var(--border)', margin: '4px 0 10px' }} />
+
+            {SECTIONS.map(s => (
+              <button key={s.id} onClick={() => { setActiveSection(s.id); setDrawerOpen(false) }}
+                style={{ textAlign: 'left', padding: '10px 12px', borderRadius: '8px', border: 'none', background: activeSection === s.id ? 'rgba(0,184,217,0.1)' : 'transparent', color: activeSection === s.id ? '#00B8D9' : 'var(--text-primary)', fontSize: '13px', fontFamily: 'Exo 2', fontWeight: '600', cursor: 'pointer' }}>
+                {s.label}
+              </button>
+            ))}
+
+            <div style={{ height: '1px', background: 'var(--border)', margin: '10px 0' }} />
+
+            <button onClick={() => { setShowExport(true); setDrawerOpen(false) }}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', textAlign: 'left', padding: '10px 12px', borderRadius: '8px', border: 'none', background: 'transparent', color: 'var(--text-primary)', fontSize: '13px', fontFamily: 'Exo 2', cursor: 'pointer' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Export CSV
+            </button>
+            <button onClick={onLogout}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', textAlign: 'left', padding: '10px 12px', borderRadius: '8px', border: 'none', background: 'transparent', color: '#FF6B3D', fontSize: '13px', fontFamily: 'Exo 2', cursor: 'pointer' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              Logout
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Dashboard grid */}
-      <main style={{ flex: 1, padding: '14px 20px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <main className="dashboard-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
 
-        {/* Row 1: Primary KPIs */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr 1fr 1fr', gap: '10px' }}>
-          <div className="oled-card glow-green" style={{ padding: '18px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-            <div style={wt}>STATE OF CHARGE</div>
-            <SOCGauge soc={data.packSOC} size={148} />
-            <div style={{ color: '#5A7A94', fontSize: '11px', textAlign: 'center' }}>
-              {data.isCharging ? '⚡ Solar charging active' : '→ Discharging · driving'}
+        {/* Overview: Primary KPIs */}
+        {showSection('overview') && (
+          <div className="kpi-grid">
+            <div className="oled-card glow-green" style={{ padding: '18px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+              <div style={wt}>STATE OF CHARGE</div>
+              <SOCGauge soc={data.packSOC} size={148} />
+              <div style={{ color: 'var(--text-secondary)', fontSize: '11px', textAlign: 'center' }}>
+                {data.isCharging ? '⚡ Solar charging active' : '→ Discharging · driving'}
+              </div>
+            </div>
+
+            <div className="oled-card" style={{ padding: '18px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '10px' }}>
+              <div style={wt}>PACK VOLTAGE</div>
+              <PackVoltageWidget voltage={data.packVoltage} />
+              <Stat label="Config" value="4S NMC Li-ion" />
+            </div>
+
+            <div className="oled-card" style={{ padding: '18px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+              <div style={wt}>CURRENT FLOW</div>
+              <CurrentWidget current={data.current} isCharging={data.isCharging} />
+            </div>
+
+            <div className="oled-card" style={{ padding: '18px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={wt}>TEMPERATURE</div>
+              <TemperatureWidget temp={data.temperature} />
+              <Stat label="Ambient" value="28.0°C" />
+            </div>
+
+            <div className="oled-card" style={{ padding: '18px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+              <div style={wt}>SOLAR RADIATION</div>
+              <SolarWidget radiation={data.solarRadiation} />
+              <Stat label="Panel" value="1.2 m²" />
+            </div>
+
+            <div className="oled-card" style={{ padding: '18px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+              <div style={wt}>STATE OF HEALTH</div>
+              <PackSOHWidget soh={data.packSOH} cells={data.cells} />
             </div>
           </div>
+        )}
 
-          <div className="oled-card" style={{ padding: '18px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '10px' }}>
-            <div style={wt}>PACK VOLTAGE</div>
-            <PackVoltageWidget voltage={data.packVoltage} />
-            <Stat label="Config" value="4S NMC Li-ion" />
-          </div>
-
-          <div className="oled-card" style={{ padding: '18px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-            <div style={wt}>CURRENT FLOW</div>
-            <CurrentWidget current={data.current} isCharging={data.isCharging} />
-          </div>
-
-          <div className="oled-card" style={{ padding: '18px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <div style={wt}>TEMPERATURE</div>
-            <TemperatureWidget temp={data.temperature} />
-            <Stat label="Ambient" value="28.0°C" />
-          </div>
-
-          <div className="oled-card" style={{ padding: '18px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-            <div style={wt}>SOLAR RADIATION</div>
-            <SolarWidget radiation={data.solarRadiation} />
-            <Stat label="Panel" value="1.2 m²" />
-          </div>
-
-          <div className="oled-card" style={{ padding: '18px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-            <div style={wt}>STATE OF HEALTH</div>
-            <PackSOHWidget soh={data.packSOH} cells={data.cells} />
-          </div>
-        </div>
-
-        {/* Row 2: Cells */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: '10px' }}>
-          <div className="oled-card" style={{ padding: '16px 20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <div style={wt}>CELL VOLTAGES</div>
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                <span style={{ color: '#5A7A94', fontSize: '10px' }}>
-                  ΔV: <span className="font-mono" style={{ color: '#00B8D9' }}>
-                    {(Math.max(...data.cells.map(c => c.voltage)) - Math.min(...data.cells.map(c => c.voltage))).toFixed(3)}V
+        {/* Cells & Health */}
+        {showSection('cells') && (
+          <div className="cell-grid">
+            <div className="oled-card" style={{ padding: '16px 20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={wt}>CELL VOLTAGES</div>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--text-secondary)', fontSize: '10px' }}>
+                    ΔV: <span className="font-mono" style={{ color: '#00B8D9' }}>
+                      {(Math.max(...data.cells.map(c => c.voltage)) - Math.min(...data.cells.map(c => c.voltage))).toFixed(3)}V
+                    </span>
                   </span>
-                </span>
-                <div style={{ fontSize: '9px', color: '#3A5A74', fontFamily: 'Exo 2', padding: '2px 6px', border: '1px solid #1A2E42', borderRadius: '4px' }}>4S PACK</div>
+                  <div style={{ fontSize: '9px', color: 'var(--text-faint)', fontFamily: 'Exo 2', padding: '2px 6px', border: '1px solid var(--border)', borderRadius: '4px' }}>4S PACK</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                {data.cells.map(cell => <CellVoltageBar key={cell.id} cell={cell} />)}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: '12px', padding: '8px 10px', background: 'var(--surface-inset)', borderRadius: '6px', border: '1px solid var(--border)', flexWrap: 'wrap', gap: '8px' }}>
+                <Stat label="Max" value={`${Math.max(...data.cells.map(c => c.voltage)).toFixed(3)}V`} color="#00E676" />
+                <Stat label="Min" value={`${Math.min(...data.cells.map(c => c.voltage)).toFixed(3)}V`} color="#FFB300" />
+                <Stat label="Avg" value={`${(data.cells.reduce((s, c) => s + c.voltage, 0) / 4).toFixed(3)}V`} color="#00B8D9" />
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', alignItems: 'flex-end' }}>
-              {data.cells.map(cell => <CellVoltageBar key={cell.id} cell={cell} />)}
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: '12px', padding: '8px 10px', background: '#080F18', borderRadius: '6px', border: '1px solid #1A2E42' }}>
-              <Stat label="Max" value={`${Math.max(...data.cells.map(c => c.voltage)).toFixed(3)}V`} color="#00E676" />
-              <Stat label="Min" value={`${Math.min(...data.cells.map(c => c.voltage)).toFixed(3)}V`} color="#FFB300" />
-              <Stat label="Avg" value={`${(data.cells.reduce((s, c) => s + c.voltage, 0) / 4).toFixed(3)}V`} color="#00B8D9" />
+
+            <div className="oled-card" style={{ padding: '16px 20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={wt}>CELL STATE OF CHARGE</div>
+                <div style={{ fontSize: '9px', color: 'var(--text-faint)', fontFamily: 'Exo 2', padding: '2px 6px', border: '1px solid var(--border)', borderRadius: '4px' }}>INDIVIDUAL</div>
+              </div>
+              <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', alignItems: 'flex-end', marginBottom: '14px', flexWrap: 'wrap' }}>
+                {data.cells.map(cell => <CellSOCBar key={cell.id} cell={cell} />)}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '6px' }}>
+                {data.cells.map(cell => {
+                  const color = cell.soc < 20 ? '#FF3D00' : cell.soc < 40 ? '#FFB300' : '#00E676'
+                  return (
+                    <div key={cell.id} style={{ background: 'var(--surface-inset)', border: '1px solid var(--border)', borderRadius: '6px', padding: '6px 8px', textAlign: 'center' }}>
+                      <div style={{ color: 'var(--text-faint)', fontSize: '9px', fontFamily: 'Exo 2' }}>CELL {cell.id}</div>
+                      <div style={{ fontFamily: 'JetBrains Mono', fontSize: '14px', color, fontWeight: '600' }}>{Math.round(cell.soc)}%</div>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           </div>
+        )}
 
-          <div className="oled-card" style={{ padding: '16px 20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <div style={wt}>CELL STATE OF CHARGE</div>
-              <div style={{ fontSize: '9px', color: '#3A5A74', fontFamily: 'Exo 2', padding: '2px 6px', border: '1px solid #1A2E42', borderRadius: '4px' }}>INDIVIDUAL</div>
-            </div>
-            <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', alignItems: 'flex-end', marginBottom: '14px' }}>
-              {data.cells.map(cell => <CellSOCBar key={cell.id} cell={cell} />)}
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '6px' }}>
-              {data.cells.map(cell => {
-                const color = cell.soc < 20 ? '#FF3D00' : cell.soc < 40 ? '#FFB300' : '#00E676'
-                return (
-                  <div key={cell.id} style={{ background: '#080F18', border: '1px solid #1A2E42', borderRadius: '6px', padding: '6px 8px', textAlign: 'center' }}>
-                    <div style={{ color: '#3A5A74', fontSize: '9px', fontFamily: 'Exo 2' }}>CELL {cell.id}</div>
-                    <div style={{ fontFamily: 'JetBrains Mono', fontSize: '14px', color, fontWeight: '600' }}>{Math.round(cell.soc)}%</div>
+        {/* Trip & History */}
+        {showSection('trip') && (
+          <>
+            <div className="trip-grid">
+              <div className="oled-card" style={{ padding: '16px 18px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <div style={wt}>VEHICLE LOCATION</div>
+                  <span className="font-mono" style={{ fontSize: '11px', color: '#00E676' }}>{data.location.speed.toFixed(1)} km/h</span>
+                </div>
+                <LocationWidget location={data.location} />
+              </div>
+
+              <div className="oled-card" style={{ padding: '16px 18px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={wt}>HISTORICAL DATA — {esp32Connected ? 'SUPABASE DB' : 'SIMULATED'}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div className="animate-blink" style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#00E676' }} />
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '10px', fontFamily: 'Exo 2', letterSpacing: '0.1em' }}>EVERY 2.5 MIN</span>
                   </div>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* Row 3: Location + chart */}
-        <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '10px' }}>
-          <div className="oled-card" style={{ padding: '16px 18px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <div style={wt}>VEHICLE LOCATION</div>
-              <span className="font-mono" style={{ fontSize: '11px', color: '#00E676' }}>{data.location.speed.toFixed(1)} km/h</span>
-            </div>
-            <LocationWidget location={data.location} />
-          </div>
-
-          <div className="oled-card" style={{ padding: '16px 18px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <div style={wt}>HISTORICAL DATA — {esp32Connected ? 'SUPABASE DB' : 'SIMULATED'}</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <div className="animate-blink" style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#00E676' }} />
-                <span style={{ color: '#5A7A94', fontSize: '10px', fontFamily: 'Exo 2', letterSpacing: '0.1em' }}>EVERY 2.5 MIN</span>
+                </div>
+                <TimeSeriesChart history={history} />
               </div>
             </div>
-            <TimeSeriesChart history={history} />
-          </div>
-        </div>
 
-        {/* Footer status bar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '8px 14px', background: '#0B1117', borderRadius: '8px', border: '1px solid #1A2E42', fontSize: '10px', fontFamily: 'JetBrains Mono', flexWrap: 'wrap' }}>
-          <Pill label="ESP32" value={esp32Connected ? 'CONNECTED' : 'AWAITING'} color={esp32Connected ? '#00E676' : '#5A7A94'} />
-          <Sep />
-          <Pill label="DATABASE" value="SUPABASE" color="#00B8D9" />
-          <Sep />
-          <Pill label="CELLS" value="4S NMC" color="#00B8D9" />
-          <Sep />
-          <Pill label="BMS" value="ACTIVE" color="#00E676" />
-          <Sep />
-          <Pill label="SOLAR" value={data.solarRadiation > 100 ? 'ACTIVE' : 'IDLE'} color={data.solarRadiation > 100 ? '#FFB300' : '#5A7A94'} />
-          <Sep />
-          <Pill label="SYNC" value={data.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })} color="#5A7A94" />
-          <div style={{ flex: 1 }} />
-          <span style={{ color: '#2A4464' }}>TUKBMS · {user.vehicleId} · {user.city}</span>
-        </div>
+            {/* Footer status bar */}
+            <div className="status-bar" style={{ padding: '8px 14px', background: 'var(--bg-elevated)', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '10px', fontFamily: 'JetBrains Mono' }}>
+              <Pill label="ESP32" value={esp32Connected ? 'CONNECTED' : 'AWAITING'} color={esp32Connected ? '#00E676' : 'var(--text-secondary)'} />
+              <Sep />
+              <Pill label="DATABASE" value="SUPABASE" color="#00B8D9" />
+              <Sep />
+              <Pill label="CELLS" value="4S NMC" color="#00B8D9" />
+              <Sep />
+              <Pill label="BMS" value="ACTIVE" color="#00E676" />
+              <Sep />
+              <Pill label="SOLAR" value={data.solarRadiation > 100 ? 'ACTIVE' : 'IDLE'} color={data.solarRadiation > 100 ? '#FFB300' : 'var(--text-secondary)'} />
+              <Sep />
+              <Pill label="SYNC" value={data.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })} color="var(--text-secondary)" />
+              <div style={{ flex: 1 }} />
+              <span style={{ color: 'var(--text-faint)' }}>TUKBMS · {user.vehicleId} · {user.city}</span>
+            </div>
+          </>
+        )}
       </main>
 
       {/* CSV Export Modal */}
       {showExport && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, backdropFilter: 'blur(4px)' }}
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, backdropFilter: 'blur(4px)', padding: '16px' }}
           onClick={e => { if (e.target === e.currentTarget) setShowExport(false) }}>
-          <div className="oled-card animate-slide-up" style={{ width: '100%', maxWidth: '420px', padding: '32px', position: 'relative' }}>
+          <div className="oled-card animate-slide-up auth-card" style={{ width: '100%', maxWidth: '420px', position: 'relative' }}>
             <div className="scan-overlay" />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
               <div>
-                <div className="font-display" style={{ fontSize: '18px', fontWeight: '700', color: '#E8F4FD' }}>Export Monthly Data</div>
-                <div style={{ color: '#5A7A94', fontSize: '12px', marginTop: '4px' }}>Download as CSV — {user.vehicleId}</div>
+                <div className="font-display" style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-primary)' }}>Export Monthly Data</div>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px' }}>Download as CSV — {user.vehicleId}</div>
               </div>
-              <button onClick={() => setShowExport(false)} style={{ background: 'none', border: 'none', color: '#5A7A94', cursor: 'pointer', fontSize: '18px', lineHeight: 1 }}>×</button>
+              <button onClick={() => setShowExport(false)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '18px', lineHeight: 1 }}>×</button>
             </div>
 
             {/* Month selector */}
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', color: '#5A7A94', fontSize: '11px', fontFamily: 'Exo 2', letterSpacing: '0.15em', marginBottom: '8px' }}>SELECT MONTH</label>
+              <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '11px', fontFamily: 'Exo 2', letterSpacing: '0.15em', marginBottom: '8px' }}>SELECT MONTH</label>
               <div style={{ position: 'relative' }}>
                 <select className="oled-select" value={exportMonth} onChange={e => setExportMonth(e.target.value)}>
                   {availableMonths.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
                 </select>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#5A7A94" strokeWidth="2" style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
                   <path d="M6 9l6 6 6-6" />
                 </svg>
               </div>
             </div>
 
             {/* Schema preview */}
-            <div style={{ background: '#080F18', border: '1px solid #1A2E42', borderRadius: '8px', padding: '12px 14px', marginBottom: '16px' }}>
-              <div style={{ color: '#5A7A94', fontSize: '10px', fontFamily: 'Exo 2', letterSpacing: '0.12em', marginBottom: '8px' }}>CSV COLUMNS</div>
+            <div style={{ background: 'var(--surface-inset)', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px 14px', marginBottom: '16px' }}>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '10px', fontFamily: 'Exo 2', letterSpacing: '0.12em', marginBottom: '8px' }}>CSV COLUMNS</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                 {['Date', 'Time', 'Pack V', 'Current', 'SOC%', 'SOH%', 'Temp°C', 'Solar W/m²', 'Lat', 'Lng', 'Speed', 'C1-C4 V', 'C1-C4 SOC', 'C1-C4 SOH'].map(col => (
                   <span key={col} style={{ background: 'rgba(0,184,217,0.08)', border: '1px solid rgba(0,184,217,0.15)', borderRadius: '4px', padding: '2px 6px', color: '#00B8D9', fontSize: '10px', fontFamily: 'JetBrains Mono' }}>{col}</span>
                 ))}
               </div>
-              <div style={{ color: '#3A5A74', fontSize: '10px', marginTop: '8px', fontFamily: 'Inter' }}>
+              <div style={{ color: 'var(--text-faint)', fontSize: '10px', marginTop: '8px', fontFamily: 'Inter' }}>
                 One row per 2.5-minute reading · 24 entries/hour · ~576 rows/day
               </div>
             </div>
@@ -386,12 +492,12 @@ export default function Dashboard({ user, onLogout }: Props) {
   )
 }
 
-const wt: React.CSSProperties = { color: '#5A7A94', fontSize: '10px', fontFamily: 'Exo 2', fontWeight: '600', letterSpacing: '0.2em' }
+const wt: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: '10px', fontFamily: 'Exo 2', fontWeight: '600', letterSpacing: '0.2em' }
 
-function Stat({ label, value, color = '#5A7A94' }: { label: string; value: string; color?: string }) {
+function Stat({ label, value, color = 'var(--text-secondary)' }: { label: string; value: string; color?: string }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <span style={{ color: '#3A5A74', fontSize: '9px', fontFamily: 'Exo 2', letterSpacing: '0.1em' }}>{label}</span>
+      <span style={{ color: 'var(--text-faint)', fontSize: '9px', fontFamily: 'Exo 2', letterSpacing: '0.1em' }}>{label}</span>
       <span style={{ fontFamily: 'JetBrains Mono', fontSize: '12px', color, fontWeight: '500', marginTop: '1px' }}>{value}</span>
     </div>
   )
@@ -400,13 +506,13 @@ function Stat({ label, value, color = '#5A7A94' }: { label: string; value: strin
 function Pill({ label, value, color }: { label: string; value: string; color: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-      <span style={{ color: '#3A5A74' }}>{label}</span>
-      <span style={{ color: '#2A4464' }}>·</span>
+      <span style={{ color: 'var(--text-faint)' }}>{label}</span>
+      <span style={{ color: 'var(--text-faint)' }}>·</span>
       <span style={{ color }}>{value}</span>
     </div>
   )
 }
 
 function Sep() {
-  return <div style={{ width: '1px', height: '14px', background: '#1A2E42' }} />
+  return <div style={{ width: '1px', height: '14px', background: 'var(--border)' }} />
 }

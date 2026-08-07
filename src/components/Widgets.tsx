@@ -1,7 +1,30 @@
 import { useState, useEffect, useRef } from 'react'
 import type { CellData, HistoryPoint } from '../hooks/useBatteryData'
+import type { Theme } from '../hooks/useTheme'
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
+
+export function ThemeToggle({ theme, onToggle }: { theme: Theme; onToggle: () => void }) {
+  return (
+    <button
+      onClick={onToggle}
+      className="theme-toggle"
+      title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+      aria-label="Toggle color theme"
+    >
+      {theme === 'dark' ? (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+        </svg>
+      ) : (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+        </svg>
+      )}
+    </button>
+  )
+}
 
 export function useAnimatedValue(target: number, duration = 700): number {
   const [displayed, setDisplayed] = useState(target)
@@ -35,7 +58,7 @@ export function SOCGauge({ soc, size = 160 }: { soc: number; size?: number }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
       <svg width={size} height={size} viewBox="0 0 140 140">
-        <circle cx="70" cy="70" r={radius} fill="none" stroke="#1A2E42" strokeWidth="9" />
+        <circle cx="70" cy="70" r={radius} fill="none" stroke="var(--border)" strokeWidth="9" />
         {Array.from({ length: 40 }, (_, i) => {
           const angle = (i / 40) * 360 - 90
           const rad = (angle * Math.PI) / 180
@@ -43,7 +66,7 @@ export function SOCGauge({ soc, size = 160 }: { soc: number; size?: number }) {
             <line key={i}
               x1={70 + Math.cos(rad) * 46} y1={70 + Math.sin(rad) * 46}
               x2={70 + Math.cos(rad) * 51} y2={70 + Math.sin(rad) * 51}
-              stroke={i % 5 === 0 ? '#243A52' : '#162233'}
+              stroke={i % 5 === 0 ? 'var(--border-hover)' : 'var(--border-subtle)'}
               strokeWidth={i % 5 === 0 ? '1.5' : '0.8'}
             />
           )
@@ -58,9 +81,9 @@ export function SOCGauge({ soc, size = 160 }: { soc: number; size?: number }) {
         />
         <text x="70" y="60" textAnchor="middle" fill={color} fontSize="28" fontFamily="JetBrains Mono" fontWeight="700">{Math.round(animated)}</text>
         <text x="70" y="76" textAnchor="middle" fill={color} fontSize="11" fontFamily="JetBrains Mono" opacity="0.7">%</text>
-        <text x="70" y="92" textAnchor="middle" fill="#5A7A94" fontSize="9" fontFamily="Exo 2" letterSpacing="1">STATE OF CHARGE</text>
+        <text x="70" y="92" textAnchor="middle" fill="var(--text-secondary)" fontSize="9" fontFamily="Exo 2" letterSpacing="1">STATE OF CHARGE</text>
       </svg>
-      <div style={{ width: '100%', height: '3px', background: '#0B1117', borderRadius: '2px', overflow: 'hidden' }}>
+      <div style={{ width: '100%', height: '3px', background: 'var(--bg-elevated)', borderRadius: '2px', overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${animated}%`, background: `linear-gradient(90deg, ${color}, ${color}88)`, borderRadius: '2px', transition: 'width 0.8s ease' }} />
       </div>
     </div>
@@ -75,13 +98,13 @@ export function CellSOCBar({ cell }: { cell: CellData }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
       <span style={{ fontFamily: 'JetBrains Mono', fontSize: '12px', fontWeight: '600', color }}>{Math.round(animated)}%</span>
-      <div style={{ width: '28px', height: '80px', background: '#0B1117', border: '1px solid #1A2E42', borderRadius: '4px', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ width: '28px', height: '80px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '4px', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: `${animated}%`, background: `linear-gradient(to top, ${color}, ${color}55)`, borderRadius: '3px', transition: 'height 0.8s ease' }} />
         {[25, 50, 75].map(p => (
           <div key={p} style={{ position: 'absolute', left: 0, right: 0, bottom: `${p}%`, height: '1px', background: '#05080D', opacity: 0.8 }} />
         ))}
       </div>
-      <span style={{ color: '#5A7A94', fontSize: '10px', fontFamily: 'Exo 2' }}>C{cell.id}</span>
+      <span style={{ color: 'var(--text-secondary)', fontSize: '10px', fontFamily: 'Exo 2' }}>C{cell.id}</span>
     </div>
   )
 }
@@ -95,12 +118,12 @@ export function CellVoltageBar({ cell }: { cell: CellData }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', flex: 1 }}>
       <span style={{ fontFamily: 'JetBrains Mono', fontSize: '11px', fontWeight: '700', color, letterSpacing: '0.02em' }}>{animated.toFixed(3)}V</span>
-      <div style={{ width: '36px', height: '110px', background: '#0B1117', border: '1px solid #1A2E42', borderRadius: '5px', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ width: '36px', height: '110px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '5px', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: `${pct}%`, background: `linear-gradient(to top, ${color}, ${color}44)`, borderRadius: '4px', transition: 'height 0.8s cubic-bezier(0.4,0,0.2,1)', boxShadow: `0 -4px 12px ${color}40` }} />
       </div>
       <div>
-        <div style={{ color: '#5A7A94', fontSize: '9px', fontFamily: 'Exo 2', textAlign: 'center', letterSpacing: '0.05em' }}>CELL {cell.id}</div>
-        <div style={{ color: cell.soh < 85 ? '#FFB300' : '#3A5A74', fontSize: '9px', fontFamily: 'JetBrains Mono', textAlign: 'center' }}>SOH {cell.soh}%</div>
+        <div style={{ color: 'var(--text-secondary)', fontSize: '9px', fontFamily: 'Exo 2', textAlign: 'center', letterSpacing: '0.05em' }}>CELL {cell.id}</div>
+        <div style={{ color: cell.soh < 85 ? '#FFB300' : 'var(--text-tertiary)', fontSize: '9px', fontFamily: 'JetBrains Mono', textAlign: 'center' }}>SOH {cell.soh}%</div>
       </div>
     </div>
   )
@@ -114,7 +137,7 @@ export function CurrentWidget({ current, isCharging }: { current: number; isChar
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
       <svg width="56" height="56" viewBox="0 0 56 56">
-        <circle cx="28" cy="28" r="24" fill="none" stroke="#1A2E42" strokeWidth="1.5" />
+        <circle cx="28" cy="28" r="24" fill="none" stroke="var(--border)" strokeWidth="1.5" />
         <circle cx="28" cy="28" r="24" fill={`${color}08`} />
         {isCharging
           ? <path d="M32 16L22 28h8l-6 12 14-16h-8l4-8z" fill={color} />
@@ -151,14 +174,14 @@ export function TemperatureWidget({ temp }: { temp: number }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
       <svg width="32" height="80" viewBox="0 0 32 80">
-        <rect x="12" y="6" width="8" height="54" rx="4" fill="#0B1117" stroke="#1A2E42" strokeWidth="1" />
-        <rect x="13.5" y="7.5" width="5" height="51" rx="3" fill="#0B1117" />
+        <rect x="12" y="6" width="8" height="54" rx="4" fill="var(--bg-elevated)" stroke="var(--border)" strokeWidth="1" />
+        <rect x="13.5" y="7.5" width="5" height="51" rx="3" fill="var(--bg-elevated)" />
         <rect x="13.5" y={7.5 + 51 * (1 - pct / 100)} width="5" height={51 * (pct / 100)} rx="3" fill={color}
           style={{ transition: 'all 0.8s ease', filter: `drop-shadow(0 0 3px ${color})` }} />
-        <circle cx="16" cy="66" r="9" fill="#0B1117" stroke="#1A2E42" strokeWidth="1" />
+        <circle cx="16" cy="66" r="9" fill="var(--bg-elevated)" stroke="var(--border)" strokeWidth="1" />
         <circle cx="16" cy="66" r="7" fill={color} style={{ transition: 'fill 0.5s', filter: `drop-shadow(0 0 4px ${color})` }} />
         {[0, 25, 50, 75, 100].map(p => (
-          <line key={p} x1="21" y1={7.5 + 51 * (1 - p / 100)} x2="24" y2={7.5 + 51 * (1 - p / 100)} stroke="#243A52" strokeWidth="1" />
+          <line key={p} x1="21" y1={7.5 + 51 * (1 - p / 100)} x2="24" y2={7.5 + 51 * (1 - p / 100)} stroke="var(--border-hover)" strokeWidth="1" />
         ))}
       </svg>
       <div>
@@ -166,7 +189,7 @@ export function TemperatureWidget({ temp }: { temp: number }) {
           {animated.toFixed(1)}<span style={{ fontSize: '14px', opacity: 0.7 }}>°C</span>
         </div>
         <div style={{ color, fontSize: '10px', fontFamily: 'Exo 2', fontWeight: '600', letterSpacing: '0.15em', marginTop: '2px' }}>{status}</div>
-        <div style={{ color: '#5A7A94', fontSize: '10px', marginTop: '4px', fontFamily: 'Inter' }}>Pack Temperature</div>
+        <div style={{ color: 'var(--text-secondary)', fontSize: '10px', marginTop: '4px', fontFamily: 'Inter' }}>Pack Temperature</div>
       </div>
     </div>
   )
@@ -177,7 +200,7 @@ export function TemperatureWidget({ temp }: { temp: number }) {
 export function SolarWidget({ radiation }: { radiation: number }) {
   const animated = useAnimatedValue(radiation)
   const pct = (animated / 1000) * 100
-  const color = radiation > 600 ? '#FFB300' : radiation > 300 ? '#FF8C00' : '#5A7A94'
+  const color = radiation > 600 ? '#FFB300' : radiation > 300 ? '#FF8C00' : 'var(--text-secondary)'
   const status = radiation > 700 ? 'EXCELLENT' : radiation > 400 ? 'GOOD' : radiation > 100 ? 'PARTIAL' : 'LOW'
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
@@ -199,7 +222,7 @@ export function SolarWidget({ radiation }: { radiation: number }) {
         </div>
         <div style={{ color, fontSize: '10px', fontFamily: 'Exo 2', fontWeight: '600', letterSpacing: '0.15em', marginTop: '2px' }}>{status}</div>
       </div>
-      <div style={{ width: '100%', height: '4px', background: '#0B1117', borderRadius: '2px', overflow: 'hidden' }}>
+      <div style={{ width: '100%', height: '4px', background: 'var(--bg-elevated)', borderRadius: '2px', overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${pct}%`, background: `linear-gradient(90deg, #FF8C00, ${color})`, borderRadius: '2px', transition: 'width 0.8s ease', boxShadow: `0 0 8px ${color}60` }} />
       </div>
     </div>
@@ -217,13 +240,13 @@ export function PackVoltageWidget({ voltage }: { voltage: number }) {
       <div style={{ fontFamily: 'JetBrains Mono', fontSize: '32px', fontWeight: '700', color, letterSpacing: '-0.02em' }}>
         {animated.toFixed(2)}<span style={{ fontSize: '14px', opacity: 0.7 }}>V</span>
       </div>
-      <div style={{ color: '#5A7A94', fontSize: '10px', fontFamily: 'Exo 2', letterSpacing: '0.1em', marginTop: '4px', marginBottom: '10px' }}>PACK VOLTAGE</div>
-      <div style={{ width: '100%', height: '5px', background: '#0B1117', borderRadius: '3px', overflow: 'hidden' }}>
+      <div style={{ color: 'var(--text-secondary)', fontSize: '10px', fontFamily: 'Exo 2', letterSpacing: '0.1em', marginTop: '4px', marginBottom: '10px' }}>PACK VOLTAGE</div>
+      <div style={{ width: '100%', height: '5px', background: 'var(--bg-elevated)', borderRadius: '3px', overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${Math.max(0, Math.min(100, pct))}%`, background: `linear-gradient(90deg, ${color}88, ${color})`, borderRadius: '3px', transition: 'width 0.8s ease', boxShadow: `0 0 8px ${color}50` }} />
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
-        <span style={{ color: '#2A4464', fontSize: '9px', fontFamily: 'JetBrains Mono' }}>12.0V</span>
-        <span style={{ color: '#2A4464', fontSize: '9px', fontFamily: 'JetBrains Mono' }}>16.8V</span>
+        <span style={{ color: 'var(--text-faint)', fontSize: '9px', fontFamily: 'JetBrains Mono' }}>12.0V</span>
+        <span style={{ color: 'var(--text-faint)', fontSize: '9px', fontFamily: 'JetBrains Mono' }}>16.8V</span>
       </div>
     </div>
   )
@@ -240,24 +263,24 @@ export function PackSOHWidget({ soh, cells }: { soh: number; cells: CellData[] }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
       <svg width="100" height="100" viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r={radius} fill="none" stroke="#1A2E42" strokeWidth="7" />
+        <circle cx="50" cy="50" r={radius} fill="none" stroke="var(--border)" strokeWidth="7" />
         <circle cx="50" cy="50" r={radius} fill="none" stroke={color} strokeWidth="7" strokeLinecap="round"
           strokeDasharray={circ} strokeDashoffset={offset} transform="rotate(-90 50 50)"
           style={{ transition: 'stroke-dashoffset 0.8s ease, stroke 0.5s', filter: `drop-shadow(0 0 4px ${color})` }}
         />
         <text x="50" y="46" textAnchor="middle" fill={color} fontSize="20" fontFamily="JetBrains Mono" fontWeight="700">{Math.round(animated)}</text>
         <text x="50" y="59" textAnchor="middle" fill={color} fontSize="9" fontFamily="JetBrains Mono" opacity="0.7">%</text>
-        <text x="50" y="70" textAnchor="middle" fill="#5A7A94" fontSize="7" fontFamily="Exo 2" letterSpacing="0.5">SOH</text>
+        <text x="50" y="70" textAnchor="middle" fill="var(--text-secondary)" fontSize="7" fontFamily="Exo 2" letterSpacing="0.5">SOH</text>
       </svg>
       <div style={{ display: 'flex', gap: '6px' }}>
         {cells.map(cell => {
           const c = cell.soh < 85 ? '#FFB300' : '#00B8D9'
           return (
             <div key={cell.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-              <div style={{ width: '16px', height: '40px', background: '#0B1117', border: '1px solid #1A2E42', borderRadius: '3px', overflow: 'hidden', position: 'relative' }}>
+              <div style={{ width: '16px', height: '40px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '3px', overflow: 'hidden', position: 'relative' }}>
                 <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: `${cell.soh}%`, background: c, transition: 'height 0.8s ease', opacity: 0.8 }} />
               </div>
-              <span style={{ color: '#3A5A74', fontSize: '8px', fontFamily: 'Exo 2' }}>C{cell.id}</span>
+              <span style={{ color: 'var(--text-tertiary)', fontSize: '8px', fontFamily: 'Exo 2' }}>C{cell.id}</span>
             </div>
           )
         })}
@@ -303,9 +326,9 @@ export function LocationWidget({ location }: LocationProps) {
         title="Click to open Google Maps — shows vehicle location + nearby EV charging stations"
         style={{
           position: 'relative', height: '138px',
-          background: '#080F18',
+          background: 'var(--surface-inset)',
           borderRadius: '8px', overflow: 'hidden',
-          border: `1px solid ${hovered ? '#00E676' : '#1A2E42'}`,
+          border: `1px solid ${hovered ? '#00E676' : 'var(--border)'}`,
           cursor: 'pointer',
           transition: 'border-color 0.25s, box-shadow 0.25s',
           boxShadow: hovered ? '0 0 16px rgba(0,230,118,0.15)' : 'none',
@@ -336,13 +359,13 @@ export function LocationWidget({ location }: LocationProps) {
         </div>
 
         {/* Speed badge */}
-        <div style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(5,8,13,0.85)', border: '1px solid #1A2E42', borderRadius: '6px', padding: '3px 8px', backdropFilter: 'blur(4px)' }}>
+        <div style={{ position: 'absolute', top: '8px', right: '8px', background: 'var(--overlay-badge-strong)', border: '1px solid var(--border)', borderRadius: '6px', padding: '3px 8px', backdropFilter: 'blur(4px)' }}>
           <span style={{ fontFamily: 'JetBrains Mono', fontSize: '12px', color: '#00E676', fontWeight: '600' }}>{location.speed.toFixed(1)}</span>
-          <span style={{ fontFamily: 'Exo 2', fontSize: '9px', color: '#5A7A94', marginLeft: '2px' }}>km/h</span>
+          <span style={{ fontFamily: 'Exo 2', fontSize: '9px', color: 'var(--text-secondary)', marginLeft: '2px' }}>km/h</span>
         </div>
 
         {/* Live badge */}
-        <div style={{ position: 'absolute', top: '8px', left: '8px', display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(5,8,13,0.7)', borderRadius: '5px', padding: '2px 6px' }}>
+        <div style={{ position: 'absolute', top: '8px', left: '8px', display: 'flex', alignItems: 'center', gap: '5px', background: 'var(--overlay-badge)', borderRadius: '5px', padding: '2px 6px' }}>
           <div className="animate-blink" style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#00E676' }} />
           <span style={{ fontFamily: 'Exo 2', fontSize: '9px', color: '#00E676', letterSpacing: '0.1em' }}>LIVE</span>
         </div>
@@ -362,23 +385,23 @@ export function LocationWidget({ location }: LocationProps) {
       {/* Coordinates row */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
         <button onClick={openDirectLocation} title="Open exact location in Google Maps"
-          style={{ background: '#080F18', border: '1px solid #1A2E42', borderRadius: '6px', padding: '7px 10px', cursor: 'pointer', textAlign: 'left', transition: 'border-color 0.2s' }}>
-          <div style={{ color: '#3A5A74', fontSize: '9px', fontFamily: 'Exo 2', letterSpacing: '0.1em' }}>LATITUDE</div>
+          style={{ background: 'var(--surface-inset)', border: '1px solid var(--border)', borderRadius: '6px', padding: '7px 10px', cursor: 'pointer', textAlign: 'left', transition: 'border-color 0.2s' }}>
+          <div style={{ color: 'var(--text-tertiary)', fontSize: '9px', fontFamily: 'Exo 2', letterSpacing: '0.1em' }}>LATITUDE</div>
           <div style={{ fontFamily: 'JetBrains Mono', fontSize: '12px', color: '#00B8D9', fontWeight: '500' }}>{location.lat.toFixed(5)}</div>
         </button>
         <button onClick={openDirectLocation} title="Open exact location in Google Maps"
-          style={{ background: '#080F18', border: '1px solid #1A2E42', borderRadius: '6px', padding: '7px 10px', cursor: 'pointer', textAlign: 'left', transition: 'border-color 0.2s' }}>
-          <div style={{ color: '#3A5A74', fontSize: '9px', fontFamily: 'Exo 2', letterSpacing: '0.1em' }}>LONGITUDE</div>
+          style={{ background: 'var(--surface-inset)', border: '1px solid var(--border)', borderRadius: '6px', padding: '7px 10px', cursor: 'pointer', textAlign: 'left', transition: 'border-color 0.2s' }}>
+          <div style={{ color: 'var(--text-tertiary)', fontSize: '9px', fontFamily: 'Exo 2', letterSpacing: '0.1em' }}>LONGITUDE</div>
           <div style={{ fontFamily: 'JetBrains Mono', fontSize: '12px', color: '#00B8D9', fontWeight: '500' }}>{location.lng.toFixed(5)}</div>
         </button>
       </div>
 
       {/* Address */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#5A7A94" strokeWidth="2" style={{ marginTop: '1px', flexShrink: 0 }}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" style={{ marginTop: '1px', flexShrink: 0 }}>
           <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
         </svg>
-        <span style={{ color: '#5A7A94', fontSize: '11px', fontFamily: 'Inter', lineHeight: 1.5 }}>{location.address}</span>
+        <span style={{ color: 'var(--text-secondary)', fontSize: '11px', fontFamily: 'Inter', lineHeight: 1.5 }}>{location.address}</span>
       </div>
     </div>
   )
@@ -401,7 +424,7 @@ export function TimeSeriesChart({ history }: { history: HistoryPoint[] }) {
 
   const m = metrics[active]
   const values = history.map(m.getValue)
-  if (values.length < 2) return <div style={{ color: '#5A7A94', fontSize: '13px', textAlign: 'center', padding: '40px 0' }}>Awaiting data from ESP32...</div>
+  if (values.length < 2) return <div style={{ color: 'var(--text-secondary)', fontSize: '13px', textAlign: 'center', padding: '40px 0' }}>Awaiting data from ESP32...</div>
 
   const W = 500, H = 100
   const padL = 36, padR = 12, padT = 12, padB = 20
@@ -426,7 +449,7 @@ export function TimeSeriesChart({ history }: { history: HistoryPoint[] }) {
       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
         {(Object.entries(metrics) as [Metric, typeof metrics[Metric]][]).map(([key, meta]) => (
           <button key={key} onClick={() => setActive(key)}
-            style={{ padding: '4px 12px', borderRadius: '6px', border: `1px solid ${active === key ? meta.color : '#1A2E42'}`, background: active === key ? `${meta.color}12` : 'transparent', color: active === key ? meta.color : '#5A7A94', fontFamily: 'Exo 2', fontSize: '11px', fontWeight: '600', letterSpacing: '0.05em', cursor: 'pointer', transition: 'all 0.25s' }}>
+            style={{ padding: '4px 12px', borderRadius: '6px', border: `1px solid ${active === key ? meta.color : 'var(--border)'}`, background: active === key ? `${meta.color}12` : 'transparent', color: active === key ? meta.color : 'var(--text-secondary)', fontFamily: 'Exo 2', fontSize: '11px', fontWeight: '600', letterSpacing: '0.05em', cursor: 'pointer', transition: 'all 0.25s' }}>
             {meta.label}
           </button>
         ))}
@@ -444,8 +467,8 @@ export function TimeSeriesChart({ history }: { history: HistoryPoint[] }) {
         >
           {yTicks.map((tick, i) => (
             <g key={i}>
-              <line x1={padL} y1={tick.y} x2={W - padR} y2={tick.y} stroke="#1A2E42" strokeWidth="0.5" strokeDasharray="2 3" />
-              <text x={padL - 3} y={tick.y + 4} textAnchor="end" fill="#3A5A74" fontSize="7" fontFamily="JetBrains Mono">{tick.label}</text>
+              <line x1={padL} y1={tick.y} x2={W - padR} y2={tick.y} stroke="var(--border)" strokeWidth="0.5" strokeDasharray="2 3" />
+              <text x={padL - 3} y={tick.y + 4} textAnchor="end" fill="var(--text-tertiary)" fontSize="7" fontFamily="JetBrains Mono">{tick.label}</text>
             </g>
           ))}
           <defs>
@@ -461,14 +484,14 @@ export function TimeSeriesChart({ history }: { history: HistoryPoint[] }) {
             <>
               <line x1={toX(hoverIdx)} y1={padT} x2={toX(hoverIdx)} y2={padT + cH} stroke={m.color} strokeWidth="1" strokeDasharray="3 2" opacity="0.5" />
               <circle cx={toX(hoverIdx)} cy={toY(values[hoverIdx])} r="4" fill={m.color} />
-              <rect x={toX(hoverIdx) - 22} y={toY(values[hoverIdx]) - 20} width="44" height="16" rx="3" fill="#0F1923" stroke={m.color} strokeWidth="0.5" opacity="0.95" />
+              <rect x={toX(hoverIdx) - 22} y={toY(values[hoverIdx]) - 20} width="44" height="16" rx="3" fill="var(--surface)" stroke={m.color} strokeWidth="0.5" opacity="0.95" />
               <text x={toX(hoverIdx)} y={toY(values[hoverIdx]) - 9} textAnchor="middle" fill={m.color} fontSize="8" fontFamily="JetBrains Mono">
                 {values[hoverIdx].toFixed(1)}{m.unit}
               </text>
             </>
           )}
-          <text x={padL} y={H - 5} fill="#3A5A74" fontSize="7" fontFamily="Inter">{`${(history.length - 1) * 2.5} min ago`}</text>
-          <text x={W - padR} y={H - 5} textAnchor="end" fill="#3A5A74" fontSize="7" fontFamily="Inter">Now</text>
+          <text x={padL} y={H - 5} fill="var(--text-tertiary)" fontSize="7" fontFamily="Inter">{`${(history.length - 1) * 2.5} min ago`}</text>
+          <text x={W - padR} y={H - 5} textAnchor="end" fill="var(--text-tertiary)" fontSize="7" fontFamily="Inter">Now</text>
         </svg>
       </div>
 
@@ -479,8 +502,8 @@ export function TimeSeriesChart({ history }: { history: HistoryPoint[] }) {
           { label: 'MIN', v: Math.min(...values) },
           { label: 'MAX', v: Math.max(...values) },
         ].map(({ label, v }) => (
-          <div key={label} style={{ background: '#080F18', border: '1px solid #1A2E42', borderRadius: '6px', padding: '6px 10px', flex: 1, textAlign: 'center' }}>
-            <div style={{ color: '#3A5A74', fontSize: '9px', fontFamily: 'Exo 2', letterSpacing: '0.1em' }}>{label}</div>
+          <div key={label} style={{ background: 'var(--surface-inset)', border: '1px solid var(--border)', borderRadius: '6px', padding: '6px 10px', flex: 1, textAlign: 'center' }}>
+            <div style={{ color: 'var(--text-tertiary)', fontSize: '9px', fontFamily: 'Exo 2', letterSpacing: '0.1em' }}>{label}</div>
             <div style={{ fontFamily: 'JetBrains Mono', fontSize: '13px', color: m.color, fontWeight: '600', marginTop: '2px' }}>
               {v.toFixed(1)}<span style={{ fontSize: '9px', opacity: 0.7 }}>{m.unit}</span>
             </div>
