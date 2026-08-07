@@ -4,6 +4,14 @@ A live monitoring dashboard for solar-assisted e-tuktuk battery packs (4S NMC Li
 
 This README explains, in detail, how to go from **simulated demo data** to **real live data from a physical ESP32 device**.
 
+## Live demo
+
+Every push to `main` builds the dashboard and deploys it to GitHub Pages via `.github/workflows/deploy.yml`. Once enabled (see below), it's live at:
+
+**https://engsalinger.github.io/FYFYPROJECT/**
+
+One-time setup (repo owner only): go to **Settings → Pages → Build and deployment → Source** and select **GitHub Actions**. After that, every push to `main` redeploys automatically — no manual steps needed.
+
 ---
 
 ## 1. How the system fits together
