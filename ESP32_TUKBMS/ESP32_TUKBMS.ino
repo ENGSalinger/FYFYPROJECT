@@ -47,6 +47,7 @@
 #include <Wire.h>
 #include <TinyGPSPlus.h>
 #include <HardwareSerial.h>
+#include <time.h>
 
 // ── CONFIGURATION — edit these ─────────────────────────────────────────────
 const char* WIFI_SSID     = "YOUR_WIFI_SSID";          // Your WiFi network name
@@ -143,6 +144,24 @@ void setup() {
 
   // WiFi
   connectWiFi();
+
+  // NTP time sync (UTC — primary time source; more reliable than waiting on
+  // a GPS fix, since WiFi is already required to upload readings anyway)
+  configTime(0, 0, "pool.ntp.org", "time.google.com");
+  Serial.print("[NTP] Syncing time");
+  struct tm timeinfo;
+  int ntpAttempts = 0;
+  while (!getLocalTime(&timeinfo, 1000) && ntpAttempts < 10) {
+    Serial.print(".");
+    ntpAttempts++;
+  }
+  if (ntpAttempts < 10) {
+    Serial.printf("\n[OK] NTP time synced: %04d-%02d-%02d %02d:%02d:%02d UTC\n",
+      timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday,
+      timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+  } else {
+    Serial.println("\n[WARN] NTP sync failed — will retry before each upload; GPS time used as fallback until then");
+  }
 
   // ADC attenuation (allows reading up to ~3.3V)
   analogSetAttenuation(ADC_11db);
@@ -317,19 +336,32 @@ void sendToSupabase() {
     if (WiFi.status() != WL_CONNECTED) return;
   }
 
-  // Build ISO8601 timestamp
+  // Build ISO8601 UTC timestamp.
+  // NTP is the primary source (synced once in setup(), re-checked here since
+  // it's cheap and the clock only needs a periodic top-up). GPS time is used
+  // as a fallback when NTP hasn't synced (e.g. captive portal, flaky WiFi).
+  // We never fabricate a fake date — if neither source is available yet,
+  // the reading is skipped rather than silently mis-timestamped.
   char timestamp[32];
-  // Use GPS time if available, else use ESP32 uptime (for production use NTP)
-  if (gps.date.isValid() && gps.time.isValid()) {
+  struct tm timeinfo;
+  bool haveTime = false;
+
+  if (getLocalTime(&timeinfo, 200)) {
+    snprintf(timestamp, sizeof(timestamp), "%04d-%02d-%02dT%02d:%02d:%02dZ",
+      timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday,
+      timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+    haveTime = true;
+  } else if (gps.date.isValid() && gps.time.isValid()) {
     snprintf(timestamp, sizeof(timestamp), "%04d-%02d-%02dT%02d:%02d:%02dZ",
       gps.date.year(), gps.date.month(), gps.date.day(),
       gps.time.hour(), gps.time.minute(), gps.time.second());
-  } else {
-    // Fallback: use millis (not real time — add NTP for production)
-    snprintf(timestamp, sizeof(timestamp), "2024-09-01T%02lu:%02lu:%02luZ",
-      (millis() / 3600000UL) % 24,
-      (millis() / 60000UL) % 60,
-      (millis() / 1000UL) % 60);
+    haveTime = true;
+    Serial.println("[WARN] NTP unavailable — using GPS time instead");
+  }
+
+  if (!haveTime) {
+    Serial.println("[WARN] No accurate time source available (NTP + GPS both failed) — skipping this upload to avoid mis-timestamped data");
+    return;
   }
 
   // Build JSON payload

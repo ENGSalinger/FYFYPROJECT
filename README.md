@@ -209,7 +209,8 @@ If you see `[HTTP] ERROR (401)`, the `x-api-key` doesn't match the server's `ESP
 | WiFi never connects | ESP32 only supports 2.4GHz networks, not 5GHz |
 | Cell voltages look wrong / negative | Voltage divider ratios not calibrated to your actual resistors |
 | Current always reads ~0A | `ACS712_ZERO_VOLTAGE` not calibrated with zero current flowing |
-| GPS shows "No fix yet" | Needs an unobstructed sky view; first fix can take several minutes |
+| GPS shows "No fix yet" | Needs an unobstructed sky view; first fix can take several minutes. This doesn't block uploads — timestamps come from NTP (network time), with GPS time only used as a fallback if NTP hasn't synced. |
+| Upload silently skipped, Serial shows "No accurate time source available" | Both NTP and GPS failed to provide a time — check WiFi/internet connectivity. The firmware deliberately skips the upload rather than sending a wrong timestamp. |
 | `500` error on ingest | Check the Supabase `battery_readings` table exists (hit `/health` once to bootstrap schema) |
 | **"Failed to fetch" on Login/Sign Up (especially on a standalone deploy like GitHub Pages/Vercel)** | The Supabase Edge Function (`make-server-ad1287b9`) was never deployed to the Supabase project, so the browser's CORS preflight fails before it even gets a response. Confirm with `curl https://<project-ref>.supabase.co/functions/v1/make-server-ad1287b9/health` — a `{"code":"NOT_FOUND",...}` body means it's undeployed. Fix: install the [Supabase CLI](https://supabase.com/docs/guides/cli), run `supabase login`, `supabase link --project-ref <project-ref>`, create the `drivers`/`battery_readings` tables via the SQL Editor using the `SCHEMA_SQL` block in `supabase/functions/server/index.tsx`, then `supabase functions deploy make-server-ad1287b9`. |
 
