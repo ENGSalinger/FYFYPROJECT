@@ -58,7 +58,7 @@ const char* SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOi
 const char* ESP32_API_KEY = "TUKBMS-ESP32-2024";       // Must match server
 
 // Your vehicle ID (registered in the web app)
-const char* VEHICLE_ID = "TUK-JHB-2847";               // Change to your vehicle ID
+const char* VEHICLE_ID = "TUK-GP-2847";                // Change to your vehicle ID (province-coded, e.g. GP = Gauteng)
 
 // Data interval: 2.5 minutes = 150,000 ms
 const unsigned long SEND_INTERVAL_MS = 150000UL;

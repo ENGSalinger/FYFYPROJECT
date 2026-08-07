@@ -34,7 +34,7 @@ export default function SignUp({ onSignUp, onBack }: Props) {
   const validateStep2 = () => {
     const errs: Record<string, string> = {}
     if (!form.vehicleId.trim()) errs.vehicleId = 'Vehicle ID is required'
-    else if (!/^[A-Z0-9-]{4,}$/i.test(form.vehicleId)) errs.vehicleId = 'Invalid format — use e.g. TUK-JHB-2847'
+    else if (!/^[A-Z0-9-\s]{4,}$/i.test(form.vehicleId)) errs.vehicleId = 'Invalid format — use e.g. TUK-GP-2847'
     if (!form.password) errs.password = 'Password is required'
     else if (form.password.length < 8) errs.password = 'Minimum 8 characters required'
     if (form.password !== form.confirm) errs.confirm = 'Passwords do not match'
@@ -126,8 +126,8 @@ export default function SignUp({ onSignUp, onBack }: Props) {
           </div>
         ) : (
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <Field label="VEHICLE ID" error={errors.vehicleId} hint="Assigned to your e-tuktuk (e.g. TUK-JHB-2847)">
-              <input className="oled-input" placeholder="TUK-JHB-2847" value={form.vehicleId} onChange={set('vehicleId')}
+            <Field label="VEHICLE ID" error={errors.vehicleId} hint="Assigned to your e-tuktuk — province-coded, e.g. TUK-GP-2847 (GP = Gauteng, WP = Western Cape, ZN = KwaZulu-Natal, MP = Mpumalanga, EC = Eastern Cape, L = Limpopo, NC = Northern Cape, FS = Free State, NW = North West)">
+              <input className="oled-input" placeholder="TUK-GP-2847" value={form.vehicleId} onChange={set('vehicleId')}
                 style={{ textTransform: 'uppercase', fontFamily: 'JetBrains Mono', letterSpacing: '0.08em' }} />
             </Field>
             <Field label="PASSWORD" error={errors.password} hint="Minimum 8 characters">

@@ -71,7 +71,19 @@ Until a real reading exists in `battery_readings` for a vehicle, the dashboard s
 
 Before flashing the firmware, create the vehicle's account through the dashboard's **Sign Up** flow (driver name, age, city, Vehicle ID, password). This writes a row to the `drivers` table via the `/signup` edge function route.
 
-**The Vehicle ID you choose here must exactly match `VEHICLE_ID` in the firmware** (the server upper-cases both sides, so case doesn't matter, but spelling and dashes do). Use the South African vehicle ID format, e.g. `TUK-JHB-2847` (city code + number — JHB, CPT, DBN, PTA, etc.).
+**The Vehicle ID you choose here must exactly match `VEHICLE_ID` in the firmware** (the server upper-cases both sides, so case doesn't matter, but spelling and dashes do). Use the province-coded format, e.g. `TUK-GP-2847`, where the middle segment is the real South African province registration code:
+
+| Province | Code |
+|---|---|
+| Gauteng | GP |
+| Western Cape | WP |
+| KwaZulu-Natal | ZN |
+| Mpumalanga | MP |
+| Eastern Cape | EC |
+| Limpopo | L |
+| Northern Cape | NC |
+| Free State | FS |
+| North West | NW |
 
 ---
 

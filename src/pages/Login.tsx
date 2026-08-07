@@ -83,7 +83,7 @@ export default function Login({ onLogin, onSignUp }: Props) {
               <input
                 type="text"
                 className="oled-input"
-                placeholder="e.g. TUK-JHB-2847"
+                placeholder="e.g. TUK-GP-2847"
                 value={vehicleId}
                 onChange={e => setVehicleId(e.target.value)}
                 style={{ paddingLeft: '42px', textTransform: 'uppercase', fontFamily: 'JetBrains Mono', letterSpacing: '0.05em' }}
