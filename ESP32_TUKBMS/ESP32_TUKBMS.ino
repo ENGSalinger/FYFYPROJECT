@@ -56,7 +56,7 @@ const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";       // Your WiFi password
 // Supabase edge function URL — your project
 const char* SERVER_URL = "https://vgrlfxebrauckbtupwlv.supabase.co/functions/v1/make-server-ad1287b9/ingest";
 const char* SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZncmxmeGVicmF1Y2tidHVwd2x2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMjI1NzMsImV4cCI6MjEwMTY5ODU3M30.tFyCGrXqVTjYjX7HtfF6o8xXJnOFQyX1PAcaeRgY-Sk";
-const char* ESP32_API_KEY = "TUKBMS-ESP32-2024";       // Must match server
+const char* ESP32_API_KEY = "9078563412";       // Must match server This is teh ESP32-API-KEY
 
 // Your vehicle ID (registered in the web app)
 const char* VEHICLE_ID = "TUK-GP-2847";                // Change to your vehicle ID (province-coded, e.g. GP = Gauteng)
