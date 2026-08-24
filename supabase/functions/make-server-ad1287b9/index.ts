@@ -100,7 +100,7 @@ app.post("/make-server-ad1287b9/login", async (c) => {
     driver: { id: driver.id, name: driver.name, vehicle_id: driver.vehicle_id, city: driver.city, age: driver.age },
   });
 });
-
+//What is happening
 // ── ESP32: Ingest battery reading ─────────────────────────────────────────────
 app.post("/make-server-ad1287b9/ingest", async (c) => {
   const apiKey = c.req.header("x-api-key");
